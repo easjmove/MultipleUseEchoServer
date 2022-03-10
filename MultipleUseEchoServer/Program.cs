@@ -19,20 +19,24 @@ namespace MultipleUseEchoServer
             //Actually starts the listener
             listener.Start();
 
+            //Here the code will wait, until a client connects and then returns an instance of the TcpClient class
+            TcpClient socket = listener.AcceptTcpClient();
+
+            //Gets the stream object from the socket. The stream object is able to recieve and send data
+            NetworkStream ns = socket.GetStream();
+            //The StreamReader is an easier way to read data from a Stream, it uses the NetworkStream
+            StreamReader reader = new StreamReader(ns);
+            //The StreamWriter is an easier way to write data to a Stream, it uses the NetworkStream
+            StreamWriter writer = new StreamWriter(ns);
+
+            //We don't want the server to be stuck in an infinite loop, so we need a way to end the loop
+            //this is what we will use this bool variable for
+            bool keepListening = true;
+
             //In order for the server to be able to handle more than one client a while loop is needed.
             //here it is while true, because we don't have something that tells it to stop
-            while (true)
-            {
-                //Here the code will wait, until a client connects and then returns an instance of the TcpClient class
-                TcpClient socket = listener.AcceptTcpClient();
-
-                //Gets the stream object from the socket. The stream object is able to recieve and send data
-                NetworkStream ns = socket.GetStream();
-                //The StreamReader is an easier way to read data from a Stream, it uses the NetworkStream
-                StreamReader reader = new StreamReader(ns);
-                //The StreamWriter is an easier way to write data to a Stream, it uses the NetworkStream
-                StreamWriter writer = new StreamWriter(ns);
-
+            while (keepListening)
+            {                
                 //Here it reads all data send until a line break (cr lf) is received; notice the Line part of the ReadLine
                 string message = reader.ReadLine();
                 //Here it writes the received data to the Console
@@ -44,12 +48,15 @@ namespace MultipleUseEchoServer
                 //Always remember to flush after you
                 writer.Flush();
 
-                //Because it doesn't expect more messages from the client, it closes the socket/connection
-                socket.Close();
-
-                //the while loop ends here, after the server closes the socket connected to the client
-                //but before the server stops listening.
+                //if the message received is close, ignoring the case, the server will stop the while loop, and go on to close the connection
+                if (message.Equals("close", StringComparison.OrdinalIgnoreCase))
+                {
+                    keepListening = false;
+                }
             }
+
+            //Because it doesn't expect more messages from the client, it closes the socket/connection
+            socket.Close();
 
             //this line will never be reached because of the while loop
             //instead it will only stop when the program is stopped
